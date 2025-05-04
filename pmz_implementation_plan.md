@@ -1,6 +1,6 @@
 # Plan: ES Futures PMZ Indicator Implementation in Rust
 
-## 1. Goal
+## 1. Goa
 
 Implement a Rust application that calculates the Pre-Market Zone (PMZ) for the current ES futures contract based on 5-minute candle data, using logic derived from the provided `Tr3ndyPMZ.ts.txt` ThinkOrSwim script. The calculation should be performed as of 9:25 AM EST each weekday.
 
@@ -9,7 +9,8 @@ Implement a Rust application that calculates the Pre-Market Zone (PMZ) for the c
 *   **Indicator:** Pre-Market Zone (PMZ).
 *   **Source Logic:** `Tr3ndyPMZ.ts.txt` (ThinkOrSwim script).
 *   **Outcome:** A clear understanding of the PMZ formula and the data needed to compute it.
-*   **Calculate PMZ Boundaries:** Compute the final PMZ high and low values based on the translated logic and the filtered candle data.
+*   **Calculate PMZ Boundaries:** Compute the final PMZ high, low and risk values based on the translated logic and filtered candle data
+*   **output intermediate values** pmh, pml, gap, and lis are intermediate values in the script, please output these for troubleshooting.
 
 ## 3.5. Output Results
 

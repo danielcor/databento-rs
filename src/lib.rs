@@ -13,17 +13,26 @@
 //! - `live`: enables the [live client](LiveClient) for real-time and intraday
 //!   historical data
 
-// Experimental feature to allow docs.rs to display features
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![deny(missing_docs)]
 #![deny(rustdoc::broken_intra_doc_links)]
 #![deny(clippy::missing_errors_doc)]
 
+/// Error types for the Databento client
 pub mod error;
 #[cfg(feature = "historical")]
 pub mod historical;
 #[cfg(feature = "live")]
 pub mod live;
+
+/// Foreign Function Interface (FFI) for C/C# interoperability
+pub mod ffi;
+
+/// Example implementations and utilities for reuse in client code and FFI
+pub mod examples {
+    /// PMZ (Pre-Market Zone) calculation for ES Futures
+    pub mod es_futures_pmz;
+}
 
 pub use error::{Error, Result};
 #[cfg(feature = "historical")]
@@ -32,6 +41,9 @@ pub use historical::Client as HistoricalClient;
 pub use live::Client as LiveClient;
 // Re-export to keep versions synchronized
 pub use dbn;
+
+// Export the FFI functions to make them visible in the dynamic library
+pub use ffi::{pmz_calculate, pmz_free_result, CPmzResult, PmzErrorCode};
 
 use std::fmt::{self, Display, Write};
 

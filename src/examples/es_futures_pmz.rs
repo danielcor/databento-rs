@@ -1,5 +1,8 @@
+//! Examples moved here from the examples directory
+//! This module contains the PMZ calculation logic
+
 use anyhow::Result;
-use databento::{
+use crate::{
     dbn::{Encoding, OhlcvMsg, Schema, SType},
     historical::{
         metadata::ListFieldsParams,
@@ -10,24 +13,32 @@ use databento::{
 };
 use chrono::{DateTime, Duration, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Timelike, Utc, Datelike};
 use chrono_tz::{America::New_York, US::Eastern};
-use std::{collections::HashMap, env, str::FromStr};
+use std::{collections::HashMap};
 use time::{Date, OffsetDateTime};
 
-// PMZ calculation result structure
+/// PMZ calculation result structure
 #[derive(Debug, Clone)]
 pub struct PmzResult {
+    /// The date for which PMZ values were calculated
     pub date: NaiveDate,
+    /// Pre-Market High value
     pub pmh: f64,
+    /// Pre-Market Low value
     pub pml: f64,
+    /// Previous day's Line in Sand (LIS) value
     pub prev_day_lis: f64,
+    /// Indicates if the market gapped up (true) or down (false)
     pub is_gap_up: bool,
+    /// PMZ high value (buy zone)
     pub pmz_high: f64,
+    /// PMZ low value (sell zone)
     pub pmz_low: f64,
+    /// Risk value (PMZ High - PMZ Low)
     pub risk: f64,
 }
 
-// --- Candle Struct (adapted from ohlcv_candles.rs) ---
-#[derive(Debug, Clone)] // Added Debug, Clone
+// --- Candle Struct ---
+#[derive(Debug, Clone)]
 struct Candle {
     timestamp: DateTime<chrono_tz::Tz>, // Use timezone-aware DateTime (Eastern)
     instrument_id: u32,
@@ -72,8 +83,8 @@ impl Candle {
     }
 }
 
-// --- Aggregation Function (adapted from ohlcv_candles.rs) ---
-// Takes a slice of 1-min candles and aggregates them into 5-min candles
+// --- Aggregation Function ---
+// Takes a slice of 1-min candles and aggregates them into interval_minutes candles
 fn aggregate_candles(candles: &[Candle], interval_minutes: u32) -> Vec<Candle> {
     let mut result = Vec::new();
     let mut candle_map: HashMap<String, Vec<&Candle>> = HashMap::new();
@@ -376,84 +387,6 @@ pub async fn calculate_pmz(
             }
             
             anyhow::bail!("Could not calculate complete PMZ values. Missing required data.")
-        }
-    }
-}
-
-fn print_usage() {
-    println!("Usage: es_futures_pmz [OPTIONS]");
-    println!("Options:");
-    println!("  -d, --date DATE    Date to calculate PMZ for (YYYY-MM-DD format)");
-    println!("  -v, --verbose      Enable verbose output");
-    println!("  -h, --help         Print this help message");
-}
-
-#[tokio::main]
-async fn main() -> Result<()> {
-    // Parse command line arguments manually
-    let args: Vec<String> = env::args().collect();
-    let mut date_opt: Option<NaiveDate> = None;
-    let mut verbose = false;
-    
-    let mut i = 1;
-    while i < args.len() {
-        match args[i].as_str() {
-            "-h" | "--help" => {
-                print_usage();
-                return Ok(());
-            },
-            "-d" | "--date" => {
-                if i + 1 < args.len() {
-                    date_opt = Some(NaiveDate::from_str(&args[i+1])?);
-                    i += 1;
-                } else {
-                    eprintln!("Error: --date requires a value");
-                    print_usage();
-                    return Ok(());
-                }
-            },
-            "-v" | "--verbose" => {
-                verbose = true;
-            },
-            _ => {
-                eprintln!("Unknown option: {}", args[i]);
-                print_usage();
-                return Ok(());
-            }
-        }
-        i += 1;
-    }
-    
-    // Get API key from environment
-    let api_key = env::var("DATABENTO_API_KEY")
-        .map_err(|_| anyhow::anyhow!("DATABENTO_API_KEY environment variable not set"))?;
-    
-    // Calculate PMZ values
-    match calculate_pmz(&api_key, date_opt, verbose).await {
-        Ok(result) => {
-            // Print basic info
-            println!("PMZ Calculation for {}", result.date.format("%Y-%m-%d"));
-            println!("----------------------------------");
-            
-            // Print the three key values
-            println!("PMZ High: {:.2}", result.pmz_high);
-            println!("PMZ Low: {:.2}", result.pmz_low);
-            println!("Risk: {:.2}", result.risk);
-            
-            // Print additional info if verbose
-            if verbose {
-                println!("\nDetailed Information:");
-                println!("Previous Day LIS: {:.2}", result.prev_day_lis);
-                println!("Gap Direction: {}", if result.is_gap_up { "Up" } else { "Down" });
-                println!("PMH (Pre-Market High): {:.2}", result.pmh);
-                println!("PML (Pre-Market Low): {:.2}", result.pml);
-            }
-            
-            Ok(())
-        },
-        Err(e) => {
-            eprintln!("Error calculating PMZ: {}", e);
-            Err(e)
         }
     }
 }
