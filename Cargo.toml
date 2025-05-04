@@ -23,6 +23,8 @@ historical = ["dep:futures", "dep:reqwest", "dep:serde", "dep:tokio-util", "dep:
 live = ["dep:hex", "dep:sha2", "tokio/net"]
 
 [dependencies]
+chrono = "0.4.41"
+chrono-tz = "0.10.3"
 dbn = { version = "0.33.0", features = ["async", "serde"] }
 # Async stream trait
 futures = { version = "0.3", optional = true }
