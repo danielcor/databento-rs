@@ -1,0 +1,146 @@
+## 
+# Tr3ndy PMZ - https://www.trendytrading.co/scripts/script-shop#PMZ
+# Copyright trendytrading.co, for information visit https://www.trendytrading.co/utilities/terms-conditions
+# @beezy
+# 2023 - Simpler Trading
+# http://www.simplertrading.com
+# *** Sharing and/or modification of this source code is expressly prohibited by the terms of your user agreement ***
+# Revision date: June 16,2023
+##
+
+input Premarket = {default "PRE", "ALL"};
+#hint futures: Use premarket or All when calculating PMZ.
+input futures = no;
+#hint futures: Plot PMZ after hours on futures.
+input Banner = yes;
+#hint Banner: Show banner on chart for PMZ H/L and Risk.
+
+def period = if GetAggregationPeriod() <= AggregationPeriod.FIVE_MIN then 
+    AggregationPeriod.FIVE_MIN
+   else GetAggregationPeriod();
+
+def tclose = 1600;
+def topen = 930;
+def fut_close = 1800;
+def nt2 = 2355;
+def nt3 = 0000;
+def nt4 = 0930;
+
+def price = close(period = period);
+def h = high(period = period);
+def l = low(period = period);
+def c = close(period = period);
+def o = open(period = period);
+
+def cnull = if period <= AggregationPeriod.FIVE_MIN then 1555
+    else if period == AggregationPeriod.TEN_MIN then 1550
+    else if period == AggregationPeriod.FIFTEEN_MIN then 1545
+    else if period == AggregationPeriod.THIRTY_MIN then 1530
+    else if period == AggregationPeriod.HOUR then 1500
+    else 0;
+
+def pnull = if period <= AggregationPeriod.FIVE_MIN then 0725 
+    else if period == AggregationPeriod.TEN_MIN then 0720        
+    else if period == AggregationPeriod.FIFTEEN_MIN then 0715 
+    else 0700;
+
+plot color = Double.NaN;
+color.Hide();
+color.DefineColor("pbull", Color.CYAN);
+color.DefineColor("pbear", Color.RED);
+color.DefineColor("fbull", Color.GREEN);
+color.DefineColor("fbear", Color.YELLOW);
+
+def LIS = If(SecondsTillTime(tclose) == 0, price, LIS[1]);
+def otime = If(SecondsTillTime(topen) == 0, o, otime[1]);
+def nperiod;
+def nperiod1 = SecondsFromTime(nt2) <= 0 and SecondsFromTime(cnull) > 0;
+def nperiod2 = SecondsFromTime(nt3) >= 0 and SecondsFromTime(nt4) < 0;
+def fut_time = SecondsFromTime(cnull) > 0 and SecondsFromTime(fut_close) < 0;
+
+switch (Premarket) {
+case "ALL":
+    nperiod = nperiod1 or nperiod2;
+case "PRE":
+    nperiod = SecondsFromTime(pnull) > 0 and SecondsFromTime(nt4) < 0;
+}
+
+
+def pmh = if SecondsTillTime(cnull) == 0 then 0
+   else if nperiod then 
+       if pmh[1] > h then pmh[1] else h 
+   else pmh[1];
+
+def pml = if SecondsTillTime(cnull) == 0 then 100000
+    else if nperiod then 
+        if pml[1] < l then pml[1] else l
+    else pml[1];
+
+def gap = if nperiod then
+    if o < LIS then 0 else 1 
+    else gap[1];
+
+plot upper = if SecondsFromTime(0930) >= 0 and SecondsFromTime(cnull) < 0 then
+    if gap then 
+        pmh - ((pmh - pml) * .2)
+    else 
+      pml + ((pmh - pml) * .2)
+    else Double.NaN;
+
+plot lower = if SecondsFromTime(0930) >= 0 and SecondsFromTime(cnull) < 0 then
+    if gap then
+        pmh - ((pmh - pml) * .4) else pml + ((pmh - pml) * .4)
+    else Double.NaN;
+
+def ahh = if SecondsTillTime(cnull) == 0 then 0 
+    else if fut_time then 
+        if ahh[1] > h then ahh[1] else h 
+    else ahh[1];
+
+def ahl = if SecondsTillTime(cnull) == 0 then 100000 
+    else if fut_time then 
+        if ahl[1] < l then ahl[1] else l 
+    else ahl[1];
+
+def ah_set = if fut_time then 
+    if o < LIS then 0 else 1 
+    else ah_set[1];
+
+plot ah_upper = if futures and (nperiod1 or nperiod2) then 
+    if ah_set then 
+        ahh - ((ahh - ahl) * .2) else ahl + ((ahh - ahl) * .2)
+    else Double.NaN;
+
+plot ahler = if futures and (nperiod1 or nperiod2) then
+    if ah_set then ahh - ((ahh - ahl) * .4) else ahl + ((ahh - ahl) * .4)
+    else Double.NaN;
+
+AddCloud(upper, lower, color.Color("pbull"), color.Color("pbear"), no);
+AddCloud(ah_upper, ahler, color.Color("fbull"), color.Color("fbear"), no);
+
+AddLabel(Banner, Concat("PMZ High: ",
+if SecondsFromTime(pnull) > 0 and SecondsFromTime(cnull) < 0 then 
+    if gap then 
+        pmh - ((pmh - pml) * .2) 
+    else 
+        pml + ((pmh - pml) * .4) 
+else Double.NaN), Color.GREEN);
+
+AddLabel(Banner, Concat("PMZ Low: ",
+if SecondsFromTime(pnull) > 0 and SecondsFromTime(cnull) < 0 then 
+    if gap then 
+        pmh - ((pmh - pml) * .4) 
+    else 
+        pml + ((pmh - pml) * .2)
+else Double.NaN), Color.RED);
+
+AddLabel(Banner, Concat("Risk: ",
+if SecondsFromTime(pnull) > 0 and SecondsFromTime(cnull) < 0 then 
+    if gap then 
+        (pmh - ((pmh - pml) * .2)) - ( pmh - ((pmh - pml) * .4))
+    else 
+        (pml + ((pmh - pml) * .4)) - (pml + ((pmh - pml) * .2))
+else Double.NaN) , Color.YELLOW);
+
+AddCloud(upper, lower, color.Color("pbull"), color.Color("pbear"), no);
+AddCloud(ah_upper, ahler, color.Color("fbull"), color.Color("fbear"), no);
